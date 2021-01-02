@@ -14,7 +14,7 @@
 
 const char CAPTIVE_CONFIG_PAGE_URI[] PROGMEM = "/_captive/config";
 
-CaptiveConfig::CaptiveConfig(DNSServer *dnsServer, ESP8266WebServer *webServer)
+CaptiveConfig::CaptiveConfig(DNSServer &dnsServer, ESP8266WebServer &webServer)
     : _dnsServer(dnsServer), _webServer(webServer) {
 }
 
@@ -51,46 +51,46 @@ void CaptiveConfig::begin(const char *apSsid, const char *apPassword) {
     WiFi.softAP(apSsid, apPassword);
 
     // start DNS server for captive portal
-    this->_dnsServer->setErrorReplyCode(DNSReplyCode::NoError);
-    this->_dnsServer->start(53, "*", WiFi.softAPIP());
+    this->_dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
+    this->_dnsServer.start(53, "*", WiFi.softAPIP());
 
     // configure web server handlers
-    this->_webServer->onNotFound([this] {
+    this->_webServer.onNotFound([this] {
         if (!this->handleCaptivePortal()) {
             this->handleNotFound();
         }
     });
-    this->_webServer->on(FPSTR(CAPTIVE_CONFIG_PAGE_URI), HTTP_GET, [this] {
+    this->_webServer.on(FPSTR(CAPTIVE_CONFIG_PAGE_URI), HTTP_GET, [this] {
         if (!this->handleCaptivePortal()) {
             this->handleGetConfigPage();
         }
     });
-    this->_webServer->on(FPSTR(CAPTIVE_CONFIG_PAGE_URI), HTTP_POST, [this] {
+    this->_webServer.on(FPSTR(CAPTIVE_CONFIG_PAGE_URI), HTTP_POST, [this] {
         if (!this->handleCaptivePortal()) {
             this->handlePostConfigPage();
         }
     });
 
     // start web server for captive portal
-    this->_webServer->begin();
+    this->_webServer.begin();
 }
 
 bool CaptiveConfig::handleCaptivePortal() {
-    String host = this->_webServer->hostHeader();
-    String localIp = this->_webServer->client().localIP().toString();
+    String host = this->_webServer.hostHeader();
+    String localIp = this->_webServer.client().localIP().toString();
     Serial.println(host);
     Serial.println(localIp);
     if (host != localIp) {
-        this->_webServer->sendHeader(String(F("Location")), String(F("http://")) + localIp + String(FPSTR(CAPTIVE_CONFIG_PAGE_URI)));
-        this->_webServer->setContentLength(0);
-        this->_webServer->send(302, "text/plain", "");
+        this->_webServer.sendHeader(String(F("Location")), String(F("http://")) + localIp + String(FPSTR(CAPTIVE_CONFIG_PAGE_URI)));
+        this->_webServer.setContentLength(0);
+        this->_webServer.send(302, "text/plain", "");
         return true;
     }
     return false;
 }
 
 void CaptiveConfig::handleNotFound() {
-    this->_webServer->send(404, "text/plain", "");
+    this->_webServer.send(404, "text/plain", "");
 }
 
 void CaptiveConfig::handleGetConfigPage() {
@@ -98,11 +98,11 @@ void CaptiveConfig::handleGetConfigPage() {
         return;
     }
 
-    this->_webServer->sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-    this->_webServer->sendHeader("Pragma", "no-cache");
-    this->_webServer->sendHeader("Expires", "-1");
-    this->_webServer->setContentLength(CONTENT_LENGTH_UNKNOWN);
-    this->_webServer->send(200, "text/html", "");
+    this->_webServer.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    this->_webServer.sendHeader("Pragma", "no-cache");
+    this->_webServer.sendHeader("Expires", "-1");
+    this->_webServer.setContentLength(CONTENT_LENGTH_UNKNOWN);
+    this->_webServer.send(200, "text/html", "");
 
     this->_sendConfigPageHtml([this] {
         this->_sendFieldset("WiFi", [this]() {
@@ -118,7 +118,7 @@ void CaptiveConfig::handleGetConfigPage() {
     });
 
     // stop client (required because content-length is unknown)
-    this->_webServer->client().stop();
+    this->_webServer.client().stop();
 }
 
 void CaptiveConfig::handlePostConfigPage() {
@@ -126,12 +126,12 @@ void CaptiveConfig::handlePostConfigPage() {
         return;
     }
 
-    const String &ssid = this->_webServer->arg(CAPTIVE_CONFIG_SSID_PARAM_NAME);
-    const String &password = this->_webServer->arg(CAPTIVE_CONFIG_PASSWORD_PARAM_NAME);
-    const String &sntpServer0 = this->_webServer->arg(CAPTIVE_CONFIG_SNTP_SERVER_0_PARAM_NAME);
-    const String &sntpServer1 = this->_webServer->arg(CAPTIVE_CONFIG_SNTP_SERVER_1_PARAM_NAME);
-    const String &sntpServer2 = this->_webServer->arg(CAPTIVE_CONFIG_SNTP_SERVER_2_PARAM_NAME);
-    const String &tz = this->_webServer->arg(CAPTIVE_CONFIG_TZ_PARAM_NAME);
+    const String &ssid = this->_webServer.arg(CAPTIVE_CONFIG_SSID_PARAM_NAME);
+    const String &password = this->_webServer.arg(CAPTIVE_CONFIG_PASSWORD_PARAM_NAME);
+    const String &sntpServer0 = this->_webServer.arg(CAPTIVE_CONFIG_SNTP_SERVER_0_PARAM_NAME);
+    const String &sntpServer1 = this->_webServer.arg(CAPTIVE_CONFIG_SNTP_SERVER_1_PARAM_NAME);
+    const String &sntpServer2 = this->_webServer.arg(CAPTIVE_CONFIG_SNTP_SERVER_2_PARAM_NAME);
+    const String &tz = this->_webServer.arg(CAPTIVE_CONFIG_TZ_PARAM_NAME);
 
     // TODO validate params
 
@@ -147,11 +147,11 @@ void CaptiveConfig::handlePostConfigPage() {
     EEPROM.put(0, this->_data);
     EEPROM.commit();
 
-    this->_webServer->sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-    this->_webServer->sendHeader("Pragma", "no-cache");
-    this->_webServer->sendHeader("Expires", "-1");
+    this->_webServer.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    this->_webServer.sendHeader("Pragma", "no-cache");
+    this->_webServer.sendHeader("Expires", "-1");
 
-    this->_webServer->send(200, "text/html", F(
+    this->_webServer.send(200, "text/html", F(
         "<!DOCTYPE html>"
         "<html lang=\"en\">"
         "<head>"
@@ -173,7 +173,7 @@ void CaptiveConfig::handlePostConfigPage() {
     ));
 
     // stop client to finish response immediately
-    this->_webServer->client().stop();
+    this->_webServer.client().stop();
 
     // restart the thing
     ESP.restart();
@@ -184,8 +184,8 @@ const CaptiveConfigData &CaptiveConfig::getData() {
 }
 
 void CaptiveConfig::doLoop() {
-    this->_dnsServer->processNextRequest();
-    this->_webServer->handleClient();
+    this->_dnsServer.processNextRequest();
+    this->_webServer.handleClient();
 
     if (WiFi.getMode() == WIFI_AP && this->_data.ssid[0] && this->_data.password[0]) {
         Serial.println(this->_data.ssid);
@@ -195,7 +195,7 @@ void CaptiveConfig::doLoop() {
 }
 
 void CaptiveConfig::_sendConfigPageHtml(const std::function<void()> &inner) {
-    this->_webServer->sendContent(F(
+    this->_webServer.sendContent(F(
         "<!DOCTYPE html>"
         "<html lang=\"en\">"
         "<head>"
@@ -215,7 +215,7 @@ void CaptiveConfig::_sendConfigPageHtml(const std::function<void()> &inner) {
 
     inner();
 
-    this->_webServer->sendContent(F(
+    this->_webServer.sendContent(F(
                 "<button id=\"btn\" type=\"submit\">Save</button>"
             "</form>"
         "</body>"
@@ -231,11 +231,11 @@ void CaptiveConfig::_sendFieldset(const char *legend, const std::function<void()
 
     prefix.replace(F("{l}"), legend);
 
-    this->_webServer->sendContent(prefix);
+    this->_webServer.sendContent(prefix);
 
     inner();
 
-    this->_webServer->sendContent(F(
+    this->_webServer.sendContent(F(
         "</fieldset>"
     ));
 }
@@ -260,7 +260,7 @@ void CaptiveConfig::_sendInput(const char *type, const char *label, const char *
     content.replace(F("{m}"), maxLengthStr);
     content.replace(F("{v}"), value);
 
-    this->_webServer->sendContent(content);
+    this->_webServer.sendContent(content);
 }
 
 void CaptiveConfig::_sendTextInput(const char *label, const char *name, uint16_t maxLength, const char *value) {

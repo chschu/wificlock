@@ -19,7 +19,7 @@ struct CaptiveConfigData {
 
 class CaptiveConfig {
 public:
-    CaptiveConfig(DNSServer *dnsServer, ESP8266WebServer *webServer);
+    CaptiveConfig(DNSServer &dnsServer, ESP8266WebServer &webServer);
 
     void begin(const char *apSsid, const char *apPassword);
     void doLoop();
@@ -52,8 +52,8 @@ public:
     const CaptiveConfigData &getData();
 
 private:
-    DNSServer *_dnsServer;
-    ESP8266WebServer *_webServer;
+    DNSServer &_dnsServer;
+    ESP8266WebServer &_webServer;
 
     CaptiveConfigData _data;
 

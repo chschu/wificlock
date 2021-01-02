@@ -17,7 +17,7 @@
 
 DNSServer dnsServer;
 ESP8266WebServer webServer(80);
-CaptiveConfig captiveConfig(&dnsServer, &webServer);
+CaptiveConfig captiveConfig(dnsServer, webServer);
 TM1637Display display(PIN_TM1637_CLK, PIN_TM1637_DIO);
 Ticker ticker;
 
