@@ -10,10 +10,9 @@
 
 #include <CaptiveConfig.h>
 
-#define PIN_CONFIG D1
 #define PIN_STATUS LED_BUILTIN
-#define PIN_TM1637_CLK D2
-#define PIN_TM1637_DIO D3
+#define PIN_TM1637_CLK D1
+#define PIN_TM1637_DIO D2
 
 DNSServer dnsServer;
 ESP8266WebServer webServer(80);
@@ -109,7 +108,7 @@ char apPass[9];
 char scroller[64];
 size_t scrollerPos = 0;
 
-WiFiEventHandler gotIp, disconn;
+WiFiEventHandler gotIp;
 
 void setup() {
     Serial.begin(9600);

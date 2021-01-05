@@ -1,4 +1,3 @@
-#include <ESP8266mDNS.h>
 #include <time.h>
 
 #include "CaptiveConfig.h"
