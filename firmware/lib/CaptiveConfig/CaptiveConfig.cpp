@@ -77,8 +77,6 @@ void CaptiveConfig::begin(const char *apSsid, const char *apPassword) {
 bool CaptiveConfig::handleCaptivePortal() {
     String host = this->_webServer.hostHeader();
     String localIp = this->_webServer.client().localIP().toString();
-    Serial.println(host);
-    Serial.println(localIp);
     if (host != localIp) {
         this->_webServer.sendHeader(String(F("Location")), String(F("http://")) + localIp + String(FPSTR(CAPTIVE_CONFIG_PAGE_URI)));
         this->_webServer.setContentLength(0);
@@ -187,8 +185,6 @@ void CaptiveConfig::doLoop() {
     this->_webServer.handleClient();
 
     if (WiFi.getMode() == WIFI_AP && this->_data.ssid[0] && this->_data.password[0]) {
-        Serial.println(this->_data.ssid);
-        Serial.println(this->_data.password);
         WiFi.begin(this->_data.ssid, this->_data.password);
     }
 }

@@ -111,8 +111,6 @@ size_t scrollerPos = 0;
 WiFiEventHandler gotIp;
 
 void setup() {
-    Serial.begin(9600);
-
     display.setBrightness(0);
     display.clear();
 
