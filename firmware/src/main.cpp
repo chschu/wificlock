@@ -17,7 +17,7 @@
 DNSServer dnsServer;
 ESP8266WebServer webServer(80);
 CaptiveConfig captiveConfig(dnsServer, webServer);
-TM1637Display display(PIN_TM1637_CLK, PIN_TM1637_DIO);
+TM1637Display display(PIN_TM1637_CLK, PIN_TM1637_DIO, 10); // CLK runs at about 27kHz, full 4-digit update takes about 2.5ms
 Ticker ticker;
 
 typedef uint8_t mapping_t[2];
