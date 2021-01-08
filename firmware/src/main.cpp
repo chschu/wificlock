@@ -102,6 +102,16 @@ uint8_t getSegments(char c) {
     return 0b00000000;
 }
 
+void setSegmentsLazy(uint8_t segments[4]) {
+    static bool first = true;
+    static uint8_t curSegments[4];
+    if (first || memcmp(curSegments, segments, sizeof(curSegments))) {
+        display.setSegments(segments);
+        memcpy(curSegments, segments, sizeof(curSegments));
+        first = false;
+    }
+}
+
 char apSsid[10];
 char apPass[9];
 
@@ -131,7 +141,7 @@ void setup() {
             segments[i] = getSegments(scroller[(scrollerPos + i) % scrollerLen]);
         }
         scrollerPos = (scrollerPos + 1) % scrollerLen;
-        display.setSegments(segments);
+        setSegmentsLazy(segments);
     };
     ticker.attach_ms_scheduled_accurate(500, tickerCallback);
     tickerCallback();
@@ -175,7 +185,7 @@ void loop() {
         if (now.tv_usec < 500000) {
             segments[1] |= SEG_DP;
         }
-        display.setSegments(segments);
+        setSegmentsLazy(segments);
     }
 
     // reduce power consumption
