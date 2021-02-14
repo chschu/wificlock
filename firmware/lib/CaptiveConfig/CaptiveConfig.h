@@ -1,3 +1,6 @@
+#ifndef _CAPTIVE_CONFIG_H
+#define _CAPTIVE_CONFIG_H
+
 #include <DNSServer.h>
 #include <ESP8266WebServer.h>
 #include <EEPROM.h>
@@ -65,3 +68,5 @@ private:
     void _sendTextInput(const char *label, const char *name, uint16_t maxLength, const char *value);
     void _sendPasswordInput(const char *label, const char *name, uint16_t maxLength, const char *value);
 };
+
+#endif
