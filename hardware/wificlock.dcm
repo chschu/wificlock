@@ -1,0 +1,19 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP HT16K33-20SOP
+D RAM Mapping 16×8 LED Controller Driver with Keyscan
+F https://www.holtek.com/documents/10179/116711/HT16K33v120.pdf
+$ENDCMP
+#
+$CMP HT16K33-28SOP
+D RAM Mapping 16×8 LED Controller Driver with Keyscan
+F https://www.holtek.com/documents/10179/116711/HT16K33v120.pdf
+$ENDCMP
+#
+$CMP KW4-56NCLB-P
+D 0.56" Quadruple Digit Numeric Display, Common Cathode
+K CL5643AH
+F https://cdn-shop.adafruit.com/datasheets/865datasheet.pdf
+$ENDCMP
+#
+#End Doc Library
