@@ -123,7 +123,7 @@ void setup() {
 
     auto tickerCallback = [scrollerLen]() {
         for (uint8_t i = 0; i < 4; i++) {
-            display.set(i + (i > 1), getBits(*(scroller + scrollerPos + i)));
+            display.set(i, getBits(*(scroller + scrollerPos + i)));
         }
         display.flush();
         scrollerPos = (scrollerPos + 1) % (scrollerLen - 3);
@@ -167,13 +167,13 @@ void loop() {
 
         for (uint8_t i = 0; i < 4; i++) {
             if (digits[i] < 10) {
-                display.set(i + (i > 1), getBits('0' + digits[i]));
+                display.set(i, getBits('0' + digits[i]));
             } else {
-                display.set(i + (i > 1), 0);
+                display.set(i, 0);
             }
         }
 
-        display.set(2, colon << 8);
+        display.set(4, colon);
 
         display.flush();
     }
