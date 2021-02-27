@@ -8,18 +8,23 @@ public:
     HT16K33(uint8_t addr = 0x70);
 
     void begin();
-
     void setBrightness(uint8_t brightness);
 
-    void clear();
-    void set(uint8_t column, uint16_t rowBits);
+    // updates key memory from HT16K33
+    void updateKeys();
+    // writes LED memory to HT16K33
+    void updateLeds(bool force = false);
 
-    void flush(bool force = false);
+    void setLedColumn(uint8_t column, uint16_t rowBits);
+
+    uint16_t getKeyColumn(uint8_t column);
 
 private:
     uint8_t _addr;
-    uint16_t _data[8];
-    bool _dirty;
+    uint16_t _ledMem[8];
+    bool _ledMemDirty;
+
+    uint16_t _keyMem[3];
 };
 
 #endif

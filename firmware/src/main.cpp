@@ -9,85 +9,7 @@
 #include <HT16K33.h>
 
 #include <CaptiveConfig.h>
-
-struct mapping_t {
-    char ch;
-    uint16_t bits;
-};
-
-const mapping_t MAPPINGS_7SEG[]= {
-    { ' ', 0b00000000 },
-    { '0', 0b00111111 },
-    { '1', 0b00000110 }, 
-    { '2', 0b01011011 },
-    { '3', 0b01001111 },
-    { '4', 0b01100110 },
-    { '5', 0b01101101 },
-    { '6', 0b01111101 },
-    { '7', 0b00000111 },
-    { '8', 0b01111111 },
-    { '9', 0b01101111 },
-    { 'A', 0b01110111 },
-    { 'b', 0b01111100 },
-    { 'c', 0b01011000 },
-    { 'C', 0b00111001 },
-    { 'd', 0b01011110 },
-    { 'E', 0b01111001 },
-    { 'F', 0b01110001 },
-    { 'G', 0b00111101 },
-    { 'h', 0b01110100 },
-    { 'H', 0b01110110 },
-    { 'i', 0b00000100 },
-    { 'j', 0b00001100 },
-    { 'J', 0b00011110 },
-    { 'L', 0b00111000 },
-    { 'n', 0b01010100 },
-    { 'o', 0b01011100 },
-    { 'P', 0b01110011 },
-    { 'q', 0b01100111 },
-    { 'r', 0b01010000 },
-    { 'S', 0b01101101 },
-    { 't', 0b01111000 },
-    { 'u', 0b00011100 },
-    { 'y', 0b01101110 },
-    { 'Y', 0b01100110 },
-    { '-', 0b01000000 },
-    { '_', 0b00001000 },
-    { '@', 0b01111011 },
-    {   0, 0b00000000 }
-};
-
-bool hasMapping(char ch) {
-    for (const mapping_t *m = &MAPPINGS_7SEG[0]; m->ch; m++) {
-        if (m->ch == ch) {
-            return true;
-        }
-    }
-    return false;
-}
-
-char getMapped(char ch) {
-    if (hasMapping(ch)) {
-        return ch;
-    }
-    char ch2 = tolower(ch);
-    if (ch2 == ch) {
-        ch2 = toupper(ch);
-    }
-    if (ch2 != ch && hasMapping(ch2)) {
-        return ch2;
-    }
-    return ' ';
-}
-
-uint16_t getBits(char ch) {
-    for (const mapping_t *m = &MAPPINGS_7SEG[0]; m->ch; m++) {
-        if (m->ch == ch) {
-            return m->bits;
-        }
-    }
-    return 0;
-}
+#include <SevenSegment.h>
 
 #define PIN_STATUS LED_BUILTIN
 #define PIN_SCL D1
@@ -123,9 +45,9 @@ void setup() {
 
     auto tickerCallback = [scrollerLen]() {
         for (uint8_t i = 0; i < 4; i++) {
-            display.set(i, getBits(*(scroller + scrollerPos + i)));
+            display.setLedColumn(i, SevenSegment.getBits(*(scroller + scrollerPos + i)));
         }
-        display.flush();
+        display.updateLeds();
         scrollerPos = (scrollerPos + 1) % (scrollerLen - 3);
     };
     ticker.attach_ms_scheduled_accurate(500, tickerCallback);
@@ -158,26 +80,59 @@ void loop() {
         tm local;
         localtime_r(&now.tv_sec, &local);
 
+        display.updateKeys();
+
+        bool dateMode = display.getKeyColumn(0) & 1;
+        bool secondMode = display.getKeyColumn(0) & 2;
+
         uint8_t digits[4];
-        digits[0] = local.tm_hour < 10 ? 0xff : local.tm_hour / 10;
-        digits[1] = local.tm_hour % 10;
-        digits[2] = local.tm_min / 10;
-        digits[3] = local.tm_min % 10;
-        bool colon = now.tv_usec < 500000;
+        bool dots[4];
+        bool colon;
+        if (dateMode) {
+            digits[0] = local.tm_mday / 10;
+            digits[1] = local.tm_mday % 10;
+            digits[2] = (local.tm_mon + 1) / 10;
+            digits[3] = (local.tm_mon + 1) % 10;
+            dots[0] = false;
+            dots[1] = true;
+            dots[2] = false;
+            dots[3] = true;
+            colon = false;
+        } else if (secondMode) {
+            digits[0] = local.tm_min / 10;
+            digits[1] = local.tm_min % 10;
+            digits[2] = local.tm_sec / 10;
+            digits[3] = local.tm_sec % 10;
+            dots[0] = false;
+            dots[1] = false;
+            dots[2] = false;
+            dots[3] = false;
+            colon = now.tv_usec < 500000;
+        } else {
+            digits[0] = local.tm_hour < 10 ? 0xff : local.tm_hour / 10;
+            digits[1] = local.tm_hour % 10;
+            digits[2] = local.tm_min / 10;
+            digits[3] = local.tm_min % 10;
+            dots[0] = false;
+            dots[1] = false;
+            dots[2] = false;
+            dots[3] = false;
+            colon = now.tv_usec < 500000;
+        }
 
         for (uint8_t i = 0; i < 4; i++) {
             if (digits[i] < 10) {
-                display.set(i, getBits('0' + digits[i]));
+                display.setLedColumn(i, SevenSegment.getBits('0' + digits[i]) | (dots[i] << 7));
             } else {
-                display.set(i, 0);
+                display.setLedColumn(i, 0);
             }
         }
 
-        display.set(4, colon);
+        display.setLedColumn(4, colon);
 
-        display.flush();
+        display.updateLeds();
     }
 
-    // reduce power consumption
-    delay(10);
+    // reduce power consumption, and make sure that keys are scanned again (1 cycle of HT16K33 is 9.504 ms)
+    delay(20);
 }
