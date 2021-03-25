@@ -17,7 +17,7 @@ CaptiveConfig::CaptiveConfig(DNSServer &dnsServer, ESP8266WebServer &webServer)
     : _dnsServer(dnsServer), _webServer(webServer) {
 }
 
-void CaptiveConfig::begin(const char *apSsid, const char *apPassword) {
+void CaptiveConfig::begin(const char *apSsid, const char *apPassword, bool tryStationConnect) {
     EEPROM.begin(sizeof(this->_data));
     EEPROM.get(0, this->_data);
 
@@ -31,6 +31,8 @@ void CaptiveConfig::begin(const char *apSsid, const char *apPassword) {
         strncpy(this->_data.sntpServer2, "2.de.pool.ntp.org", sizeof(this->_data.sntpServer2));
         strncpy(this->_data.tz, "CET-1CEST,M3.5.0,M10.5.0/3", sizeof(this->_data.tz));
     }
+
+    _tryStationConnect = tryStationConnect;
 
     // disable AP once STA got an IP
     this->_onStationModeGotIP = WiFi.onStationModeGotIP([](const WiFiEventStationModeGotIP &event) {
@@ -184,7 +186,7 @@ void CaptiveConfig::doLoop() {
     this->_dnsServer.processNextRequest();
     this->_webServer.handleClient();
 
-    if (WiFi.getMode() == WIFI_AP && this->_data.ssid[0] && this->_data.password[0]) {
+    if (WiFi.getMode() == WIFI_AP && this->_data.ssid[0] && this->_data.password[0] && _tryStationConnect) {
         WiFi.begin(this->_data.ssid, this->_data.password);
     }
 }

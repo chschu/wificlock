@@ -24,7 +24,7 @@ class CaptiveConfig {
 public:
     CaptiveConfig(DNSServer &dnsServer, ESP8266WebServer &webServer);
 
-    void begin(const char *apSsid, const char *apPassword);
+    void begin(const char *apSsid, const char *apPassword, bool tryStationConnect = true);
     void doLoop();
 
     /**
@@ -59,6 +59,7 @@ private:
     ESP8266WebServer &_webServer;
 
     CaptiveConfigData _data;
+    bool _tryStationConnect;
 
     WiFiEventHandler _onStationModeGotIP;
 
