@@ -20,7 +20,7 @@ static void i2c_write(uint8_t addr, uint8_t *data, size_t num) {
 }
 
 static void i2c_read(uint8_t addr, uint8_t *data, size_t num) {
-    Wire.requestFrom(addr, 6);
+    Wire.requestFrom(addr, num);
     for (size_t i = 0; i < num && Wire.available(); i++) {
         data[i] = Wire.read();
     }
@@ -70,7 +70,7 @@ void HT16K33::updateLeds(bool force) {
 void HT16K33::updateKeys() {
     i2c_write(_addr, 0x40);
 
-    uint8_t tmp[3] = { 0, 0, 0 };
+    uint8_t tmp[6] = { 0, 0, 0, 0, 0, 0 };
     i2c_read(_addr, tmp, 6);
 
     for (int i = 0; i < 3; i++) {
