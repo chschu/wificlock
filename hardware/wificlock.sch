@@ -19,7 +19,7 @@ U 1 1 5FF1D683
 P 1150 1650
 F 0 "J1" H 1257 2517 50  0000 C CNN
 F 1 "USB_C_Receptacle_USB2.0" H 1257 2426 50  0000 C CNN
-F 2 "Connector_USB:USB_C_Receptacle_XKB_U262-16XN-4BVC11" H 1300 1650 50  0001 C CNN
+F 2 "wificlock:USB_C_Receptacle_UT03FD014SX01ZA_Vertical" H 1300 1650 50  0001 C CNN
 F 3 "https://www.usb.org/sites/default/files/documents/usb_type-c.zip" H 1300 1650 50  0001 C CNN
 	1    1150 1650
 	1    0    0    -1  
@@ -1328,4 +1328,26 @@ Wire Wire Line
 Wire Wire Line
 	2950 5000 3050 5000
 Connection ~ 2950 5000
+$Comp
+L Mechanical:MountingHole H1
+U 1 1 6062D568
+P 9950 2800
+F 0 "H1" H 10050 2846 50  0000 L CNN
+F 1 "MountingHole" H 10050 2755 50  0000 L CNN
+F 2 "MountingHole:MountingHole_3.2mm_M3_ISO14580" H 9950 2800 50  0001 C CNN
+F 3 "~" H 9950 2800 50  0001 C CNN
+	1    9950 2800
+	1    0    0    -1  
+$EndComp
+$Comp
+L Mechanical:MountingHole H2
+U 1 1 6062E0E2
+P 9950 3050
+F 0 "H2" H 10050 3096 50  0000 L CNN
+F 1 "MountingHole" H 10050 3005 50  0000 L CNN
+F 2 "MountingHole:MountingHole_3.2mm_M3_ISO14580" H 9950 3050 50  0001 C CNN
+F 3 "~" H 9950 3050 50  0001 C CNN
+	1    9950 3050
+	1    0    0    -1  
+$EndComp
 $EndSCHEMATC

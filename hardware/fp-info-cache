@@ -1,4 +1,4 @@
-18353858392534672
+18355473054646672
 Battery
 BatteryHolder_Bulgin_BX0036_1xC
 Bulgin Battery Holder, BX0036, Battery Type C (https://www.bulgin.com/products/pub/media/bulgin/data/Battery_holders.pdf)
@@ -80822,9 +80822,16 @@ KW4-56NXLB-P
 14
 14
 wificlock
-Switch-Tactile-3x6x3.5
+SW_SPST_SMD_3x6x3.5_Side
 
 
 0
 4
 3
+wificlock
+USB_C_Receptacle_UT03FD014SX01ZA_Vertical
+
+
+0
+20
+15
