@@ -1191,17 +1191,6 @@ Wire Wire Line
 Text GLabel 4100 5000 0    50   Input ~ 0
 KS0
 $Comp
-L Device:D D1
-U 1 1 60484D0D
-P 4350 5000
-F 0 "D1" H 4350 5217 50  0000 C CNN
-F 1 "D" H 4350 5126 50  0000 C CNN
-F 2 "Diode_SMD:D_SOD-123" H 4350 5000 50  0001 C CNN
-F 3 "~" H 4350 5000 50  0001 C CNN
-	1    4350 5000
-	-1   0    0    1   
-$EndComp
-$Comp
 L Switch:SW_SPST SW1
 U 1 1 60486161
 P 4850 5000
@@ -1349,5 +1338,16 @@ F 2 "MountingHole:MountingHole_3.2mm_M3_ISO14580" H 9950 3050 50  0001 C CNN
 F 3 "~" H 9950 3050 50  0001 C CNN
 	1    9950 3050
 	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148W D1
+U 1 1 6066433F
+P 4350 5000
+F 0 "D1" H 4350 4783 50  0000 C CNN
+F 1 "1N4148W" H 4350 4874 50  0000 C CNN
+F 2 "Diode_SMD:D_SOD-123" H 4350 4825 50  0001 C CNN
+F 3 "https://www.vishay.com/docs/85748/1n4148w.pdf" H 4350 5000 50  0001 C CNN
+	1    4350 5000
+	-1   0    0    1   
 $EndComp
 $EndSCHEMATC
