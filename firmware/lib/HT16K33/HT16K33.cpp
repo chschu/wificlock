@@ -1,3 +1,5 @@
+#include <Arduino.h>
+
 #include <HT16K33.h>
 #include <Wire.h>
 
@@ -19,14 +21,18 @@ static void i2c_write(uint8_t addr, uint8_t *data, size_t num) {
     Wire.endTransmission();
 }
 
-static void i2c_read(uint8_t addr, uint8_t *data, size_t num) {
-    Wire.requestFrom(addr, num);
-    for (size_t i = 0; i < num && Wire.available(); i++) {
+static size_t i2c_read(uint8_t addr, uint8_t *data, size_t num) {
+    size_t actual_num = Wire.requestFrom(addr, num, true);
+    for (size_t i = 0; i < actual_num; i++) {
         data[i] = Wire.read();
     }
+    return actual_num;
 }
 
 void HT16K33::begin() {
+    // datasheet, page 8: "Data transfers on the I2C-bus should be avoided for 1 ms following a power-on to allow completion of the reset action."
+    delay(1);
+
     // turn on oscillator
     i2c_write(_addr, 0x21);
 
@@ -68,8 +74,10 @@ void HT16K33::updateLeds(bool force) {
 }
 
 void HT16K33::updateKeys() {
-    i2c_write(_addr, 0x40);
+    // wait for at least two cycles (2 * 9.504ms) to make sure key scanning hast been performed since the last read
+    delay(20);
 
+    i2c_write(_addr, 0x40);
     uint8_t tmp[6] = { 0, 0, 0, 0, 0, 0 };
     i2c_read(_addr, tmp, 6);
 

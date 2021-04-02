@@ -8,6 +8,7 @@ public:
     HT16K33(uint8_t addr = 0x70);
 
     void begin();
+
     void setBrightness(uint8_t brightness);
 
     // updates key memory from HT16K33
