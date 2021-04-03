@@ -5,7 +5,7 @@
 #define CAPTIVE_CONFIG_MAGIC 0xc01db00b
 
 #define CAPTIVE_CONFIG_SSID_PARAM_NAME "ssid"
-#define CAPTIVE_CONFIG_PASSWORD_PARAM_NAME "password"
+#define CAPTIVE_CONFIG_PASSPHRASE_PARAM_NAME "passphrase"
 #define CAPTIVE_CONFIG_SNTP_SERVER_0_PARAM_NAME "sntp-server-0"
 #define CAPTIVE_CONFIG_SNTP_SERVER_1_PARAM_NAME "sntp-server-1"
 #define CAPTIVE_CONFIG_SNTP_SERVER_2_PARAM_NAME "sntp-server-2"
@@ -13,11 +13,11 @@
 
 const char CAPTIVE_CONFIG_PAGE_URI[] PROGMEM = "/_captive/config";
 
-CaptiveConfig::CaptiveConfig(DNSServer &dnsServer, ESP8266WebServer &webServer)
-    : _dnsServer(dnsServer), _webServer(webServer) {
+CaptiveConfig::CaptiveConfig(DNSServer &dns_server, ESP8266WebServer &web_server)
+    : _dns_server(dns_server), _web_server(web_server) {
 }
 
-void CaptiveConfig::begin(const char *apSsid, const char *apPassword) {
+void CaptiveConfig::begin(const char *ap_ssid, const char *ap_passphrase) {
     EEPROM.begin(sizeof(this->_data));
     EEPROM.get(0, this->_data);
 
@@ -25,15 +25,15 @@ void CaptiveConfig::begin(const char *apSsid, const char *apPassword) {
     if (this->_data.magic != CAPTIVE_CONFIG_MAGIC) {
         this->_data.magic = CAPTIVE_CONFIG_MAGIC;
         this->_data.ssid[0] = 0;
-        this->_data.password[0] = 0;
-        strncpy(this->_data.sntpServer0, "0.de.pool.ntp.org", sizeof(this->_data.sntpServer0));
-        strncpy(this->_data.sntpServer1, "1.de.pool.ntp.org", sizeof(this->_data.sntpServer1));
-        strncpy(this->_data.sntpServer2, "2.de.pool.ntp.org", sizeof(this->_data.sntpServer2));
+        this->_data.passphrase[0] = 0;
+        strncpy(this->_data.sntp_server[0], "0.de.pool.ntp.org", sizeof(this->_data.sntp_server[0]));
+        strncpy(this->_data.sntp_server[1], "1.de.pool.ntp.org", sizeof(this->_data.sntp_server[1]));
+        strncpy(this->_data.sntp_server[2], "2.de.pool.ntp.org", sizeof(this->_data.sntp_server[2]));
         strncpy(this->_data.tz, "CET-1CEST,M3.5.0,M10.5.0/3", sizeof(this->_data.tz));
     }
 
     // disable AP once STA got an IP
-    this->_onStationModeGotIP = WiFi.onStationModeGotIP([](const WiFiEventStationModeGotIP &event) {
+    this->_on_station_mode_got_ip = WiFi.onStationModeGotIP([](const WiFiEventStationModeGotIP &event) {
         WiFi.softAPdisconnect(true);
         WiFi.enableAP(false);
     });
@@ -47,47 +47,47 @@ void CaptiveConfig::begin(const char *apSsid, const char *apPassword) {
     WiFi.mode(WIFI_OFF);
 
     // enable AP during initial phase
-    WiFi.softAP(apSsid, apPassword);
+    WiFi.softAP(ap_ssid, ap_passphrase);
 
     // start DNS server for captive portal
-    this->_dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
-    this->_dnsServer.start(53, "*", WiFi.softAPIP());
+    this->_dns_server.setErrorReplyCode(DNSReplyCode::NoError);
+    this->_dns_server.start(53, "*", WiFi.softAPIP());
 
     // configure web server handlers
-    this->_webServer.onNotFound([this] {
+    this->_web_server.onNotFound([this] {
         if (!this->handleCaptivePortal()) {
             this->handleNotFound();
         }
     });
-    this->_webServer.on(FPSTR(CAPTIVE_CONFIG_PAGE_URI), HTTP_GET, [this] {
+    this->_web_server.on(FPSTR(CAPTIVE_CONFIG_PAGE_URI), HTTP_GET, [this] {
         if (!this->handleCaptivePortal()) {
             this->handleGetConfigPage();
         }
     });
-    this->_webServer.on(FPSTR(CAPTIVE_CONFIG_PAGE_URI), HTTP_POST, [this] {
+    this->_web_server.on(FPSTR(CAPTIVE_CONFIG_PAGE_URI), HTTP_POST, [this] {
         if (!this->handleCaptivePortal()) {
             this->handlePostConfigPage();
         }
     });
 
     // start web server for captive portal
-    this->_webServer.begin();
+    this->_web_server.begin();
 }
 
 bool CaptiveConfig::handleCaptivePortal() {
-    String host = this->_webServer.hostHeader();
-    String localIp = this->_webServer.client().localIP().toString();
-    if (host != localIp) {
-        this->_webServer.sendHeader(String(F("Location")), String(F("http://")) + localIp + String(FPSTR(CAPTIVE_CONFIG_PAGE_URI)));
-        this->_webServer.setContentLength(0);
-        this->_webServer.send(302, "text/plain", "");
+    String host = this->_web_server.hostHeader();
+    String local_ip = this->_web_server.client().localIP().toString();
+    if (host != local_ip) {
+        this->_web_server.sendHeader(String(F("Location")), String(F("http://")) + local_ip + String(FPSTR(CAPTIVE_CONFIG_PAGE_URI)));
+        this->_web_server.setContentLength(0);
+        this->_web_server.send(302, "text/plain", "");
         return true;
     }
     return false;
 }
 
 void CaptiveConfig::handleNotFound() {
-    this->_webServer.send(404, "text/plain", "");
+    this->_web_server.send(404, "text/plain", "");
 }
 
 void CaptiveConfig::handleGetConfigPage() {
@@ -95,27 +95,27 @@ void CaptiveConfig::handleGetConfigPage() {
         return;
     }
 
-    this->_webServer.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-    this->_webServer.sendHeader("Pragma", "no-cache");
-    this->_webServer.sendHeader("Expires", "-1");
-    this->_webServer.setContentLength(CONTENT_LENGTH_UNKNOWN);
-    this->_webServer.send(200, "text/html", "");
+    this->_web_server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    this->_web_server.sendHeader("Pragma", "no-cache");
+    this->_web_server.sendHeader("Expires", "-1");
+    this->_web_server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+    this->_web_server.send(200, "text/html", "");
 
     this->_sendConfigPageHtml([this] {
         this->_sendFieldset("WiFi", [this]() {
             this->_sendTextInput("SSID", CAPTIVE_CONFIG_SSID_PARAM_NAME, CAPTIVE_CONFIG_SSID_MAX_LENGTH, this->_data.ssid);
-            this->_sendPasswordInput("Password (empty to keep)", CAPTIVE_CONFIG_PASSWORD_PARAM_NAME, CAPTIVE_CONFIG_PASSWORD_MAX_LENGTH, "");
+            this->_sendPasswordInput("Passphrase (empty to keep)", CAPTIVE_CONFIG_PASSPHRASE_PARAM_NAME, CAPTIVE_CONFIG_PASSPHRASE_MAX_LENGTH, "");
         });
         this->_sendFieldset("Time", [this]() {
-            this->_sendTextInput("SNTP Server (primary)", CAPTIVE_CONFIG_SNTP_SERVER_0_PARAM_NAME, CAPTIVE_CONFIG_SNTP_SERVER_MAX_LENGTH, this->_data.sntpServer0);
-            this->_sendTextInput("SNTP Server (1st fallback)", CAPTIVE_CONFIG_SNTP_SERVER_1_PARAM_NAME, CAPTIVE_CONFIG_SNTP_SERVER_MAX_LENGTH, this->_data.sntpServer1);
-            this->_sendTextInput("SNTP Server (2nd fallback)", CAPTIVE_CONFIG_SNTP_SERVER_2_PARAM_NAME, CAPTIVE_CONFIG_SNTP_SERVER_MAX_LENGTH, this->_data.sntpServer2);
+            this->_sendTextInput("SNTP Server (primary)", CAPTIVE_CONFIG_SNTP_SERVER_0_PARAM_NAME, CAPTIVE_CONFIG_SNTP_SERVER_MAX_LENGTH, this->_data.sntp_server[0]);
+            this->_sendTextInput("SNTP Server (1st fallback)", CAPTIVE_CONFIG_SNTP_SERVER_1_PARAM_NAME, CAPTIVE_CONFIG_SNTP_SERVER_MAX_LENGTH, this->_data.sntp_server[1]);
+            this->_sendTextInput("SNTP Server (2nd fallback)", CAPTIVE_CONFIG_SNTP_SERVER_2_PARAM_NAME, CAPTIVE_CONFIG_SNTP_SERVER_MAX_LENGTH, this->_data.sntp_server[2]);
             this->_sendTextInput("TZ", CAPTIVE_CONFIG_TZ_PARAM_NAME, CAPTIVE_CONFIG_TZ_MAX_LENGTH, this->_data.tz);
         });
     });
 
     // stop client (required because content-length is unknown)
-    this->_webServer.client().stop();
+    this->_web_server.client().stop();
 }
 
 void CaptiveConfig::handlePostConfigPage() {
@@ -123,32 +123,32 @@ void CaptiveConfig::handlePostConfigPage() {
         return;
     }
 
-    const String &ssid = this->_webServer.arg(CAPTIVE_CONFIG_SSID_PARAM_NAME);
-    const String &password = this->_webServer.arg(CAPTIVE_CONFIG_PASSWORD_PARAM_NAME);
-    const String &sntpServer0 = this->_webServer.arg(CAPTIVE_CONFIG_SNTP_SERVER_0_PARAM_NAME);
-    const String &sntpServer1 = this->_webServer.arg(CAPTIVE_CONFIG_SNTP_SERVER_1_PARAM_NAME);
-    const String &sntpServer2 = this->_webServer.arg(CAPTIVE_CONFIG_SNTP_SERVER_2_PARAM_NAME);
-    const String &tz = this->_webServer.arg(CAPTIVE_CONFIG_TZ_PARAM_NAME);
+    const String &ssid = this->_web_server.arg(CAPTIVE_CONFIG_SSID_PARAM_NAME);
+    const String &passphrase = this->_web_server.arg(CAPTIVE_CONFIG_PASSPHRASE_PARAM_NAME);
+    const String &sntp_server_0 = this->_web_server.arg(CAPTIVE_CONFIG_SNTP_SERVER_0_PARAM_NAME);
+    const String &sntp_server_1 = this->_web_server.arg(CAPTIVE_CONFIG_SNTP_SERVER_1_PARAM_NAME);
+    const String &sntp_server_2 = this->_web_server.arg(CAPTIVE_CONFIG_SNTP_SERVER_2_PARAM_NAME);
+    const String &tz = this->_web_server.arg(CAPTIVE_CONFIG_TZ_PARAM_NAME);
 
     // TODO validate params
 
     strncpy(this->_data.ssid, ssid.c_str(), sizeof(this->_data.ssid));
-    if (!password.isEmpty()) {
-        strncpy(this->_data.password, password.c_str(), sizeof(this->_data.password));
+    if (!passphrase.isEmpty()) {
+        strncpy(this->_data.passphrase, passphrase.c_str(), sizeof(this->_data.passphrase));
     }
-    strncpy(this->_data.sntpServer0, sntpServer0.c_str(), sizeof(this->_data.sntpServer0));
-    strncpy(this->_data.sntpServer1, sntpServer1.c_str(), sizeof(this->_data.sntpServer1));
-    strncpy(this->_data.sntpServer2, sntpServer2.c_str(), sizeof(this->_data.sntpServer2));
+    strncpy(this->_data.sntp_server[0], sntp_server_0.c_str(), sizeof(this->_data.sntp_server[0]));
+    strncpy(this->_data.sntp_server[0], sntp_server_1.c_str(), sizeof(this->_data.sntp_server[1]));
+    strncpy(this->_data.sntp_server[2], sntp_server_2.c_str(), sizeof(this->_data.sntp_server[2]));
     strncpy(this->_data.tz, tz.c_str(), sizeof(this->_data.tz));
 
     EEPROM.put(0, this->_data);
     EEPROM.commit();
 
-    this->_webServer.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-    this->_webServer.sendHeader("Pragma", "no-cache");
-    this->_webServer.sendHeader("Expires", "-1");
+    this->_web_server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    this->_web_server.sendHeader("Pragma", "no-cache");
+    this->_web_server.sendHeader("Expires", "-1");
 
-    this->_webServer.send(200, "text/html", F(
+    this->_web_server.send(200, "text/html", F(
         "<!DOCTYPE html>"
         "<html lang=\"en\">"
         "<head>"
@@ -170,7 +170,7 @@ void CaptiveConfig::handlePostConfigPage() {
     ));
 
     // stop client to finish response immediately
-    this->_webServer.client().stop();
+    this->_web_server.client().stop();
 
     // restart the thing
     ESP.restart();
@@ -181,16 +181,16 @@ const CaptiveConfigData &CaptiveConfig::getData() {
 }
 
 void CaptiveConfig::doLoop() {
-    this->_dnsServer.processNextRequest();
-    this->_webServer.handleClient();
+    this->_dns_server.processNextRequest();
+    this->_web_server.handleClient();
 
-    if (WiFi.getMode() == WIFI_AP && this->_data.ssid[0] && this->_data.password[0]) {
-        WiFi.begin(this->_data.ssid, this->_data.password);
+    if (WiFi.getMode() == WIFI_AP && this->_data.ssid[0] && this->_data.passphrase[0]) {
+        WiFi.begin(this->_data.ssid, this->_data.passphrase);
     }
 }
 
 void CaptiveConfig::_sendConfigPageHtml(const std::function<void()> &inner) {
-    this->_webServer.sendContent(F(
+    this->_web_server.sendContent(F(
         "<!DOCTYPE html>"
         "<html lang=\"en\">"
         "<head>"
@@ -210,7 +210,7 @@ void CaptiveConfig::_sendConfigPageHtml(const std::function<void()> &inner) {
 
     inner();
 
-    this->_webServer.sendContent(F(
+    this->_web_server.sendContent(F(
                 "<button id=\"btn\" type=\"submit\">Save</button>"
             "</form>"
         "</body>"
@@ -226,42 +226,42 @@ void CaptiveConfig::_sendFieldset(const char *legend, const std::function<void()
 
     prefix.replace(F("{l}"), legend);
 
-    this->_webServer.sendContent(prefix);
+    this->_web_server.sendContent(prefix);
 
     inner();
 
-    this->_webServer.sendContent(F(
+    this->_web_server.sendContent(F(
         "</fieldset>"
     ));
 }
 
-void CaptiveConfig::_sendInput(const char *type, const char *label, const char *name, uint16_t maxLength, const char *value) {
-    static uint32_t nextId = 0;
-    char idStr[11];
-    snprintf_P(idStr, sizeof(idStr), PSTR("id%x"), nextId++);
+void CaptiveConfig::_sendInput(const char *type, const char *label, const char *name, uint16_t max_length, const char *value) {
+    static uint32_t next_id = 0;
+    char id_str[11];
+    snprintf_P(id_str, sizeof(id_str), PSTR("id%x"), next_id++);
 
-    char maxLengthStr[11];
-    snprintf_P(maxLengthStr, sizeof(maxLengthStr), PSTR("%u"), maxLength);
+    char max_length_str[11];
+    snprintf_P(max_length_str, sizeof(max_length_str), PSTR("%u"), max_length);
 
     String content = F(
         "<label for=\"{i}\">{l}</label>"
         "<input type=\"{t}\" id=\"{i}\" name=\"{n}\" maxlength=\"{m}\" value=\"{v}\"/>"
     );
 
-    content.replace(F("{i}"), idStr);
+    content.replace(F("{i}"), id_str);
     content.replace(F("{l}"), label);
     content.replace(F("{t}"), type);
     content.replace(F("{n}"), name);
-    content.replace(F("{m}"), maxLengthStr);
+    content.replace(F("{m}"), max_length_str);
     content.replace(F("{v}"), value);
 
-    this->_webServer.sendContent(content);
+    this->_web_server.sendContent(content);
 }
 
-void CaptiveConfig::_sendTextInput(const char *label, const char *name, uint16_t maxLength, const char *value) {
-    this->_sendInput("text", label, name, maxLength, value);
+void CaptiveConfig::_sendTextInput(const char *label, const char *name, uint16_t max_length, const char *value) {
+    this->_sendInput("text", label, name, max_length, value);
 }
 
-void CaptiveConfig::_sendPasswordInput(const char *label, const char *name, uint16_t maxLength, const char *value) {
-    this->_sendInput("password", label, name, maxLength, value);
+void CaptiveConfig::_sendPasswordInput(const char *label, const char *name, uint16_t max_length, const char *value) {
+    this->_sendInput("password", label, name, max_length, value);
 }

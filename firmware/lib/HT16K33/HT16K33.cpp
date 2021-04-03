@@ -4,7 +4,7 @@
 #include <Wire.h>
 
 HT16K33::HT16K33(uint8_t addr)
-    : _addr(addr), _ledMem { 0, 0, 0, 0, 0, 0, 0, 0 }, _ledMemDirty(false), _keyMem { 0, 0, 0 } {
+    : _addr(addr), _led_mem { 0, 0, 0, 0, 0, 0, 0, 0 }, _led_mem_dirty(false), _key_mem { 0, 0, 0 } {
 }
 
 static void i2c_write(uint8_t addr, uint8_t data) {
@@ -58,18 +58,18 @@ void HT16K33::setBrightness(uint8_t brightness) {
 
 void HT16K33::updateLeds(bool force) {
     // update LEDs
-    if (_ledMemDirty || force) {
+    if (_led_mem_dirty || force) {
         uint8_t tmp[17];
         size_t num = 0;
         tmp[num++] = 0x00;
         for (uint8_t i = 0; i < 8; i++) {
-            tmp[num++] = _ledMem[i] & 0xFF;
-            tmp[num++] = _ledMem[i] >> 8;
+            tmp[num++] = _led_mem[i] & 0xFF;
+            tmp[num++] = _led_mem[i] >> 8;
         }
 
         i2c_write(_addr, tmp, num);
 
-        _ledMemDirty = false;
+        _led_mem_dirty = false;
     }
 }
 
@@ -82,17 +82,17 @@ void HT16K33::updateKeys() {
     i2c_read(_addr, tmp, 6);
 
     for (int i = 0; i < 3; i++) {
-        _keyMem[i] = (tmp[2 * i + 1] << 8) | tmp[2 * i];
+        _key_mem[i] = (tmp[2 * i + 1] << 8) | tmp[2 * i];
     }
 }
 
-void HT16K33::setLedColumn(uint8_t column, uint16_t rowBits) {
-    if (_ledMem[column] != rowBits) {
-        _ledMem[column] = rowBits;
-        _ledMemDirty = true;
+void HT16K33::setLedColumn(uint8_t column, uint16_t row_bits) {
+    if (_led_mem[column] != row_bits) {
+        _led_mem[column] = row_bits;
+        _led_mem_dirty = true;
     }
 }
 
 uint16_t HT16K33::getKeyColumn(uint8_t column) {
-    return _keyMem[column];
+    return _key_mem[column];
 }

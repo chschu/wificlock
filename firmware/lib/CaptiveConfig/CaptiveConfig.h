@@ -6,25 +6,23 @@
 #include <EEPROM.h>
 
 #define CAPTIVE_CONFIG_SSID_MAX_LENGTH         32
-#define CAPTIVE_CONFIG_PASSWORD_MAX_LENGTH     63
+#define CAPTIVE_CONFIG_PASSPHRASE_MAX_LENGTH     63
 #define CAPTIVE_CONFIG_SNTP_SERVER_MAX_LENGTH  63
 #define CAPTIVE_CONFIG_TZ_MAX_LENGTH           63
 
 struct CaptiveConfigData {
     uint32_t magic;
     char ssid[CAPTIVE_CONFIG_SSID_MAX_LENGTH + 1];
-    char password[CAPTIVE_CONFIG_PASSWORD_MAX_LENGTH + 1];
-    char sntpServer0[CAPTIVE_CONFIG_SNTP_SERVER_MAX_LENGTH + 1];
-    char sntpServer1[CAPTIVE_CONFIG_SNTP_SERVER_MAX_LENGTH + 1];
-    char sntpServer2[CAPTIVE_CONFIG_SNTP_SERVER_MAX_LENGTH + 1];
+    char passphrase[CAPTIVE_CONFIG_PASSPHRASE_MAX_LENGTH + 1];
+    char sntp_server[3][CAPTIVE_CONFIG_SNTP_SERVER_MAX_LENGTH + 1];
     char tz[CAPTIVE_CONFIG_TZ_MAX_LENGTH + 1];
 } __attribute__((packed));
 
 class CaptiveConfig {
 public:
-    CaptiveConfig(DNSServer &dnsServer, ESP8266WebServer &webServer);
+    CaptiveConfig(DNSServer &dns_server, ESP8266WebServer &web_server);
 
-    void begin(const char *apSsid, const char *apPassword);
+    void begin(const char *ap_ssid, const char *ap_passphrase);
     void doLoop();
 
     /**
@@ -55,18 +53,18 @@ public:
     const CaptiveConfigData &getData();
 
 private:
-    DNSServer &_dnsServer;
-    ESP8266WebServer &_webServer;
+    DNSServer &_dns_server;
+    ESP8266WebServer &_web_server;
 
     CaptiveConfigData _data;
 
-    WiFiEventHandler _onStationModeGotIP;
+    WiFiEventHandler _on_station_mode_got_ip;
 
     void _sendConfigPageHtml(const std::function<void()> &inner);
     void _sendFieldset(const char *legend, const std::function<void()> &inner);
     void _sendInput(const char *type, const char *label, const char *name, uint16_t maxLength, const char *value);
-    void _sendTextInput(const char *label, const char *name, uint16_t maxLength, const char *value);
-    void _sendPasswordInput(const char *label, const char *name, uint16_t maxLength, const char *value);
+    void _sendTextInput(const char *label, const char *name, uint16_t max_length, const char *value);
+    void _sendPasswordInput(const char *label, const char *name, uint16_t max_length, const char *value);
 };
 
 #endif

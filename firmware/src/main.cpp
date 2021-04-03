@@ -107,7 +107,7 @@ void setup() {
     // configure time stuff when we got an IP
     got_ip = WiFi.onStationModeGotIP([](const WiFiEventStationModeGotIP &event) {
         const CaptiveConfigData &data = captive_config.getData();
-        configTime(data.tz, data.sntpServer0, data.sntpServer1, data.sntpServer2);
+        configTime(data.tz, data.sntp_server[0], data.sntp_server[1], data.sntp_server[2]);
     });
 
     // notify clock of WiFi state change

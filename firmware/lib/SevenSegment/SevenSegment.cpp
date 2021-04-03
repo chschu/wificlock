@@ -77,8 +77,8 @@ static const mapping_t *findMappingWithCaseFallback(char ch) {
     return nullptr;
 }
 
-uint16_t SevenSegmentClass::getBits(char ch, bool caseFallback, uint16_t defaultBits) {
-    const mapping_t *m = caseFallback ? findMappingWithCaseFallback(ch) : findMapping(ch);
+uint16_t SevenSegmentClass::getBits(char ch, bool case_fallback, uint16_t default_bits) {
+    const mapping_t *m = case_fallback ? findMappingWithCaseFallback(ch) : findMapping(ch);
     if (m != nullptr) {
         return m->bits;
     }

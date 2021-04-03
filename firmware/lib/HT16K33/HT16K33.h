@@ -16,16 +16,16 @@ public:
     // writes LED memory to HT16K33
     void updateLeds(bool force = false);
 
-    void setLedColumn(uint8_t column, uint16_t rowBits);
+    void setLedColumn(uint8_t column, uint16_t row_bits);
 
     uint16_t getKeyColumn(uint8_t column);
 
 private:
     uint8_t _addr;
-    uint16_t _ledMem[8];
-    bool _ledMemDirty;
+    uint16_t _led_mem[8];
+    bool _led_mem_dirty;
 
-    uint16_t _keyMem[3];
+    uint16_t _key_mem[3];
 };
 
 #endif
