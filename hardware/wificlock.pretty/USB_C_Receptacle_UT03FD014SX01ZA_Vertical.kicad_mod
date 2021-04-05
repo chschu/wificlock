@@ -1,4 +1,4 @@
-(module USB_C_Receptacle_UT03FD014SX01ZA_Vertical (layer F.Cu) (tedit 6064E233)
+(module USB_C_Receptacle_UT03FD014SX01ZA_Vertical (layer F.Cu) (tedit 606B4C4A)
   (fp_text reference REF** (at 0 0) (layer F.SilkS)
     (effects (font (size 1 1) (thickness 0.15)))
   )
@@ -39,4 +39,9 @@
   (pad A7 thru_hole circle (at 0.45 -0.7) (size 0.7 0.7) (drill 0.45) (layers *.Cu *.Mask))
   (pad A8 smd circle (at 4.1 -1.7) (size 0.4 0.4) (layers Dwgs.User))
   (pad B8 smd circle (at 4.1 1.7) (size 0.4 0.4) (layers Dwgs.User))
+  (model ${KIPRJMOD}/wificlock.pretty/USB_C_Receptacle_UT03FD014SX01ZA_Vertical.step
+    (at (xyz 0 0 0))
+    (scale (xyz 1 1 1))
+    (rotate (xyz 0 0 0))
+  )
 )
