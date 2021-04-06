@@ -14,17 +14,6 @@ Comment3 ""
 Comment4 ""
 $EndDescr
 $Comp
-L Connector:USB_C_Receptacle_USB2.0 J1
-U 1 1 5FF1D683
-P 1150 1650
-F 0 "J1" H 1257 2517 50  0000 C CNN
-F 1 "USB_C_Receptacle_USB2.0" H 1257 2426 50  0000 C CNN
-F 2 "wificlock:USB_C_Receptacle_UT03FD014SX01ZA_Vertical" H 1300 1650 50  0001 C CNN
-F 3 "https://www.usb.org/sites/default/files/documents/usb_type-c.zip" H 1300 1650 50  0001 C CNN
-	1    1150 1650
-	1    0    0    -1  
-$EndComp
-$Comp
 L power:+5V #PWR01
 U 1 1 5FF1F396
 P 1900 900
@@ -1349,5 +1338,16 @@ F 2 "Diode_SMD:D_SOD-123" H 4350 4825 50  0001 C CNN
 F 3 "https://www.vishay.com/docs/85748/1n4148w.pdf" H 4350 5000 50  0001 C CNN
 	1    4350 5000
 	-1   0    0    1   
+$EndComp
+$Comp
+L Connector:USB_C_Receptacle_USB2.0 J1
+U 1 1 606F31A1
+P 1150 1650
+F 0 "J1" H 1257 2517 50  0000 C CNN
+F 1 "USB_C_Receptacle_USB2.0" H 1257 2426 50  0000 C CNN
+F 2 "wificlock:USB_C_Receptacle_UT03FD014SX01ZA_Vertical" H 1300 1650 50  0001 C CNN
+F 3 "https://www.usb.org/sites/default/files/documents/usb_type-c.zip" H 1300 1650 50  0001 C CNN
+	1    1150 1650
+	1    0    0    -1  
 $EndComp
 $EndSCHEMATC
