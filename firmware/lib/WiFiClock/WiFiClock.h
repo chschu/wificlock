@@ -3,17 +3,19 @@
 
 #include <time.h>
 
+#include <map>
+#include <vector>
 #include <functional>
 
 #include <HT16K33.h>
 
-typedef std::function<void(uint8_t col, uint8_t row)> WiFiClockKeyHandler;
-
 class WiFiClock {
 public:
+    typedef std::function<void(uint8_t key)> KeyHandlerFn;
+
     WiFiClock(HT16K33 &display);
 
-    void setKeyHandler(uint8_t col, uint8_t row, WiFiClockKeyHandler handler);
+    void addKeyHandler(uint8_t key, KeyHandlerFn handler);
 
     void modeNoTime();
     void modeScroller(const char *text, unsigned long delay_millis);
@@ -28,7 +30,7 @@ public:
 private:
     HT16K33 &_display;
 
-    WiFiClockKeyHandler _key_handlers[3][13];
+    std::multimap<std::pair<uint8_t, uint8_t>, KeyHandlerFn> _key_handlers;
 
     enum {
         _CLOCK_MODE_NO_TIME,

@@ -10,8 +10,8 @@
 WiFiClock::WiFiClock(HT16K33 &display) : _display(display), _mode(_CLOCK_MODE_NO_TIME) {
 }
 
-void WiFiClock::setKeyHandler(uint8_t col, uint8_t row, WiFiClockKeyHandler handler) {
-    _key_handlers[col][row] = handler;
+void WiFiClock::addKeyHandler(uint8_t key, KeyHandlerFn handler) {
+    _key_handlers.insert(std::make_pair(std::make_pair(key / 13, key % 10), handler));
 }
 
 void WiFiClock::modeNoTime() {
@@ -51,13 +51,17 @@ void WiFiClock::update() {
 
     _display.updateKeys();
 
+    uint16_t keys_new[3];
     for (uint8_t col = 0; col < 3; col++) {
-        uint16_t keys_new = _display.getKeyColumn(col);
-        uint16_t keys_changed = keys_new ^ keys_old[col];
-        for (uint8_t row = 0; row < 13; row++) {
-            if (_key_handlers[col][row] && (keys_new & (1 << row)) && (keys_changed & (1 << row))) {
-                _key_handlers[col][row](col, row);
-            }
+        keys_new[col] = _display.getKeyColumn(col);
+    }
+
+    for (auto mapping : _key_handlers) {
+        uint8_t col = mapping.first.first;
+        uint8_t row = mapping.first.second;
+        KeyHandlerFn keyHandlerFn = mapping.second;
+        if ((keys_new[col] & (1 << row)) && !(keys_old[col] & (1 << row))) {
+            keyHandlerFn(13 * col + row);
         }
     }
 

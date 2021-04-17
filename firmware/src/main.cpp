@@ -51,7 +51,7 @@ void setup() {
     snprintf_P(ap_ssid_scroller, sizeof(ap_ssid_scroller), PSTR("- %s -"), ap_ssid);
     snprintf_P(ap_passphrase_scroller, sizeof(ap_passphrase_scroller), PSTR("- %s -"), ap_passphrase);
 
-    wifi_clock.setKeyHandler(0, 0, [](uint8_t col, uint8_t row) {
+    wifi_clock.addKeyHandler(0, [](uint8_t key) {
         switch (mode) {
             case DISPLAY_MODE_INIT:
                 mode = DISPLAY_MODE_SSID;
@@ -95,7 +95,7 @@ void setup() {
     });
 
     display.setBrightness(brightness);
-    wifi_clock.setKeyHandler(0, 1, [](uint8_t col, uint8_t row) {
+    wifi_clock.addKeyHandler(1, [](uint8_t key) {
         // 0 -> 1 -> 3 -> 7 -> 15 -> 0
         brightness = 2 * brightness + 1;
         if (brightness > 15) {
