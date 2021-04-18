@@ -69,7 +69,7 @@ static const mapping_t *findMappingWithCaseFallback(char ch) {
         ch2 = toupper(ch);
     }
     if (ch2 != ch) {
-        m = findMapping(ch);
+        m = findMapping(ch2);
         if (m != nullptr) {
             return m;
         }
