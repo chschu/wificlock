@@ -17,13 +17,14 @@ public:
     void updateLeds(bool force = false);
 
     void setLedColumn(uint8_t column, uint16_t row_bits);
+    void clearAllLedColumns();
 
     uint16_t getKeyColumn(uint8_t column);
 
 private:
     uint8_t _addr;
     uint16_t _led_mem[8];
-    bool _led_mem_dirty;
+    uint16_t _led_next_mem[8];
 
     uint16_t _key_mem[3];
 };
