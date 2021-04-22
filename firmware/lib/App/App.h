@@ -8,10 +8,15 @@ public:
     virtual void setBrightness(uint8_t brightness) = 0;
     virtual void setChar(uint8_t digit, char ch, bool dot = false, bool case_fallback = false) = 0;
     virtual void setColon(bool colon) = 0;
+
+protected:
+    virtual ~AppDisplayInterface() = default; // prevent delete on pointers to this type
 };
 
 class App {
 public:
+    virtual ~App() = default;
+
     virtual void init(AppDisplayInterface &display) {
     }
 
