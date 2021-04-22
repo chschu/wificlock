@@ -22,7 +22,7 @@ class CaptiveConfig {
 public:
     CaptiveConfig(DNSServer &dns_server, ESP8266WebServer &web_server);
 
-    void begin(const char *ap_ssid, const char *ap_passphrase);
+    void begin(const char *ap_ssid, const char *ap_passphrase, bool ap_mode);
     void doLoop();
 
     /**

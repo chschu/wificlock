@@ -33,6 +33,10 @@ void HT16K33::begin() {
     // datasheet, page 8: "Data transfers on the I2C-bus should be avoided for 1 ms following a power-on to allow completion of the reset action."
     delay(1);
 
+    // turn off oscillator (standby mode)
+    // this resets key data in case that HT16K33 was not powered down before (e.g. software or hardware reset)
+    i2c_write(_addr, 0x20);
+
     // turn on oscillator
     i2c_write(_addr, 0x21);
 

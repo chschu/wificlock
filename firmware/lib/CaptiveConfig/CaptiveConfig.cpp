@@ -17,7 +17,7 @@ CaptiveConfig::CaptiveConfig(DNSServer &dns_server, ESP8266WebServer &web_server
     : _dns_server(dns_server), _web_server(web_server) {
 }
 
-void CaptiveConfig::begin(const char *ap_ssid, const char *ap_passphrase) {
+void CaptiveConfig::begin(const char *ap_ssid, const char *ap_passphrase, bool ap_mode) {
     EEPROM.begin(sizeof(this->_data));
     EEPROM.get(0, this->_data);
 
@@ -46,8 +46,15 @@ void CaptiveConfig::begin(const char *ap_ssid, const char *ap_passphrase) {
     // start with WiFi off
     WiFi.mode(WIFI_OFF);
 
-    // enable AP during initial phase
-    WiFi.softAP(ap_ssid, ap_passphrase);
+    if (ap_mode) {
+        // enable AP
+        WiFi.softAP(ap_ssid, ap_passphrase);
+    } else {
+        // enable STA if SSID and passphrease are configured
+        if (this->_data.ssid[0] && this->_data.passphrase[0]) {
+            WiFi.begin(this->_data.ssid, this->_data.passphrase);
+        }
+    }
 
     // start DNS server for captive portal
     this->_dns_server.setErrorReplyCode(DNSReplyCode::NoError);
@@ -183,10 +190,6 @@ const CaptiveConfigData &CaptiveConfig::getData() {
 void CaptiveConfig::doLoop() {
     this->_dns_server.processNextRequest();
     this->_web_server.handleClient();
-
-    if (WiFi.getMode() == WIFI_AP && this->_data.ssid[0] && this->_data.passphrase[0]) {
-        WiFi.begin(this->_data.ssid, this->_data.passphrase);
-    }
 }
 
 void CaptiveConfig::_sendConfigPageHtml(const std::function<void()> &inner) {

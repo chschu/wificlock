@@ -36,50 +36,51 @@ void setup() {
 
     display.begin();
 
-    snprintf_P(ap_ssid, sizeof(ap_ssid), PSTR("CL-%08u"), ESP.getChipId());
-    snprintf_P(ap_passphrase, sizeof(ap_passphrase), PSTR("%08u"), (ESP.getChipId() ^ ESP.getFlashChipId()) % 100000000U);
+    bool ap_mode = display.getKeyColumn(0) == 0b111;
 
-    char ap_ssid_scroller[16];
-    snprintf_P(ap_ssid_scroller, sizeof(ap_ssid_scroller), PSTR("- %s -"), ap_ssid);
-    auto ap_ssid_scroller_app = std::make_shared<ScrollerApp>(ap_ssid_scroller, 500);
+    if (ap_mode) {
+        snprintf_P(ap_ssid, sizeof(ap_ssid), PSTR("CL-%08u"), ESP.getChipId());
+        snprintf_P(ap_passphrase, sizeof(ap_passphrase), PSTR("%08u"), (ESP.getChipId() ^ ESP.getFlashChipId()) % 100000000U);
 
-    char ap_passphrase_scroller[13];
-    snprintf_P(ap_passphrase_scroller, sizeof(ap_passphrase_scroller), PSTR("- %s -"), ap_passphrase);
-    auto ap_passphrase_scroller_app = std::make_shared<ScrollerApp>(ap_passphrase_scroller, 500);
+        char ap_ssid_scroller[16];
+        snprintf_P(ap_ssid_scroller, sizeof(ap_ssid_scroller), PSTR("- %s -"), ap_ssid);
+        auto ap_ssid_scroller_app = std::make_shared<ScrollerApp>(ap_ssid_scroller, 500);
 
-    // configure time stuff when we got an IP
-    got_ip = WiFi.onStationModeGotIP([ap_ssid_scroller_app, ap_passphrase_scroller_app](const WiFiEventStationModeGotIP &event) {
-        const CaptiveConfigData &data = captive_config.getData();
-        configTime(data.tz, data.sntp_server[0], data.sntp_server[1], data.sntp_server[2]);
+        char ap_passphrase_scroller[13];
+        snprintf_P(ap_passphrase_scroller, sizeof(ap_passphrase_scroller), PSTR("- %s -"), ap_passphrase);
+        auto ap_passphrase_scroller_app = std::make_shared<ScrollerApp>(ap_passphrase_scroller, 500);
 
-        // TODO remove scrollers when the AP is actually disabled (via notification from CaptiveConfig)
-        app_controller.removeApp(ap_ssid_scroller_app);
-        app_controller.removeApp(ap_passphrase_scroller_app);
-    });
+        app_controller.addApp(ap_ssid_scroller_app);
+        app_controller.addApp(ap_passphrase_scroller_app);
+    } else {
+        // configure time stuff when we got an IP
+        got_ip = WiFi.onStationModeGotIP([](const WiFiEventStationModeGotIP &event) {
+            const CaptiveConfigData &data = captive_config.getData();
+            configTime(data.tz, data.sntp_server[0], data.sntp_server[1], data.sntp_server[2]);
+        });
 
-    auto clock_app = std::make_shared<ClockApp>();
+        auto clock_app = std::make_shared<ClockApp>();
 
-    // show trailing dot in clock app when WiFi is connected
-    connected = WiFi.onStationModeConnected([clock_app](const WiFiEventStationModeConnected &event) {
-        clock_app->setTimeTrailingDot(true);
-    });
-    disconnected = WiFi.onStationModeDisconnected([clock_app](const WiFiEventStationModeDisconnected &event) {
-        clock_app->setTimeTrailingDot(false);
-    });
+        // show trailing dot in clock app when WiFi is connected
+        connected = WiFi.onStationModeConnected([clock_app](const WiFiEventStationModeConnected &event) {
+            clock_app->setTimeTrailingDot(true);
+        });
+        disconnected = WiFi.onStationModeDisconnected([clock_app](const WiFiEventStationModeDisconnected &event) {
+            clock_app->setTimeTrailingDot(false);
+        });
 
-    // show time as soon as it is set (which is only done by SNTP here)
-    settimeofday_cb([clock_app] {
-        clock_app->notifyTimeSet();
-    });
+        // show time as soon as it is set (which is only done by SNTP here)
+        settimeofday_cb([clock_app] {
+            clock_app->notifyTimeSet();
+        });
 
-    app_controller.addApp(clock_app);
-    app_controller.addApp(ap_ssid_scroller_app);
-    app_controller.addApp(ap_passphrase_scroller_app);
-    app_controller.addApp(std::make_shared<BrightnessApp>());
+        app_controller.addApp(clock_app);
+        app_controller.addApp(std::make_shared<BrightnessApp>());
+    }
 
     web_server.begin();
 
-    captive_config.begin(ap_ssid, ap_passphrase);
+    captive_config.begin(ap_ssid, ap_passphrase, ap_mode);
 }
 
 void loop() {
