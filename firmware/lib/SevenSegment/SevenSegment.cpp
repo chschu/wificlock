@@ -82,7 +82,7 @@ uint16_t SevenSegmentClass::getBits(char ch, bool case_fallback, uint16_t defaul
     if (m != nullptr) {
         return m->bits;
     }
-    return DEFAULT_BITS;
+    return default_bits;
 }
 
 SevenSegmentClass SevenSegment;
