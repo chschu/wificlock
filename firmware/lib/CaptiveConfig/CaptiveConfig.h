@@ -58,8 +58,6 @@ private:
 
     CaptiveConfigData _data;
 
-    WiFiEventHandler _on_station_mode_got_ip;
-
     void _sendConfigPageHtml(const std::function<void()> &inner);
     void _sendFieldset(const char *legend, const std::function<void()> &inner);
     void _sendInput(const char *type, const char *label, const char *name, uint16_t maxLength, const char *value);

@@ -32,12 +32,6 @@ void CaptiveConfig::begin(const char *ap_ssid, const char *ap_passphrase, bool a
         strncpy(this->_data.tz, "CET-1CEST,M3.5.0,M10.5.0/3", sizeof(this->_data.tz));
     }
 
-    // disable AP once STA got an IP
-    this->_on_station_mode_got_ip = WiFi.onStationModeGotIP([](const WiFiEventStationModeGotIP &event) {
-        WiFi.softAPdisconnect(true);
-        WiFi.enableAP(false);
-    });
-
     // WiFi config is stored in EEPROM, don't store it in Flash
     WiFi.persistent(false);
     WiFi.setAutoConnect(false);
