@@ -17,7 +17,7 @@ CaptiveConfig::CaptiveConfig(DNSServer &dns_server, ESP8266WebServer &web_server
     : _dns_server(dns_server), _web_server(web_server) {
 }
 
-void CaptiveConfig::begin(const char *ap_ssid, const char *ap_passphrase, bool ap_mode) {
+void CaptiveConfig::begin(const char *ap_ssid, const char *ap_passphrase, bool force_config_mode) {
     EEPROM.begin(sizeof(this->_data));
     EEPROM.get(0, this->_data);
 
@@ -40,39 +40,40 @@ void CaptiveConfig::begin(const char *ap_ssid, const char *ap_passphrase, bool a
     // start with WiFi off
     WiFi.mode(WIFI_OFF);
 
-    if (ap_mode) {
+    // enable config mode if it is forced, or if WiFi is not configured
+    this->_config_mode = force_config_mode || !this->_data.ssid[0] || !this->_data.passphrase[0];
+
+    if (this->_config_mode) {
         // enable AP
         WiFi.softAP(ap_ssid, ap_passphrase);
+
+        // start DNS server for captive portal
+        this->_dns_server.setErrorReplyCode(DNSReplyCode::NoError);
+        this->_dns_server.start(53, "*", WiFi.softAPIP());
+
+        // configure web server handlers
+        this->_web_server.onNotFound([this] {
+            if (!this->handleCaptivePortal()) {
+                this->handleNotFound();
+            }
+        });
+        this->_web_server.on(FPSTR(CAPTIVE_CONFIG_PAGE_URI), HTTP_GET, [this] {
+            if (!this->handleCaptivePortal()) {
+                this->handleGetConfigPage();
+            }
+        });
+        this->_web_server.on(FPSTR(CAPTIVE_CONFIG_PAGE_URI), HTTP_POST, [this] {
+            if (!this->handleCaptivePortal()) {
+                this->handlePostConfigPage();
+            }
+        });
+
+        // start web server for captive portal
+        this->_web_server.begin();
     } else {
-        // enable STA if SSID and passphrease are configured
-        if (this->_data.ssid[0] && this->_data.passphrase[0]) {
-            WiFi.begin(this->_data.ssid, this->_data.passphrase);
-        }
+        // enable STA with configured network
+        WiFi.begin(this->_data.ssid, this->_data.passphrase);
     }
-
-    // start DNS server for captive portal
-    this->_dns_server.setErrorReplyCode(DNSReplyCode::NoError);
-    this->_dns_server.start(53, "*", WiFi.softAPIP());
-
-    // configure web server handlers
-    this->_web_server.onNotFound([this] {
-        if (!this->handleCaptivePortal()) {
-            this->handleNotFound();
-        }
-    });
-    this->_web_server.on(FPSTR(CAPTIVE_CONFIG_PAGE_URI), HTTP_GET, [this] {
-        if (!this->handleCaptivePortal()) {
-            this->handleGetConfigPage();
-        }
-    });
-    this->_web_server.on(FPSTR(CAPTIVE_CONFIG_PAGE_URI), HTTP_POST, [this] {
-        if (!this->handleCaptivePortal()) {
-            this->handlePostConfigPage();
-        }
-    });
-
-    // start web server for captive portal
-    this->_web_server.begin();
 }
 
 bool CaptiveConfig::handleCaptivePortal() {
@@ -182,8 +183,10 @@ const CaptiveConfigData &CaptiveConfig::getData() {
 }
 
 void CaptiveConfig::doLoop() {
-    this->_dns_server.processNextRequest();
-    this->_web_server.handleClient();
+    if (this->_config_mode) {
+        this->_dns_server.processNextRequest();
+        this->_web_server.handleClient();
+    }
 }
 
 void CaptiveConfig::_sendConfigPageHtml(const std::function<void()> &inner) {

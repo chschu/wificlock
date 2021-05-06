@@ -36,9 +36,9 @@ void setup() {
 
     display.begin();
 
-    bool ap_mode = display.getKeyColumn(0) == 0b111;
+    bool force_config_mode = display.getKeyColumn(0) == 0b111;
 
-    if (ap_mode) {
+    if (force_config_mode) {
         snprintf_P(ap_ssid, sizeof(ap_ssid), PSTR("CL-%08u"), ESP.getChipId());
         snprintf_P(ap_passphrase, sizeof(ap_passphrase), PSTR("%08u"), (ESP.getChipId() ^ ESP.getFlashChipId()) % 100000000U);
 
@@ -78,9 +78,7 @@ void setup() {
         app_controller.addApp(std::make_shared<BrightnessApp>());
     }
 
-    web_server.begin();
-
-    captive_config.begin(ap_ssid, ap_passphrase, ap_mode);
+    captive_config.begin(ap_ssid, ap_passphrase, force_config_mode);
 }
 
 void loop() {
