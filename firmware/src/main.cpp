@@ -38,10 +38,12 @@ void setup() {
 
     bool force_config_mode = display.getKeyColumn(0) == 0b111;
 
-    if (force_config_mode) {
-        snprintf_P(ap_ssid, sizeof(ap_ssid), PSTR("CL-%08u"), ESP.getChipId());
-        snprintf_P(ap_passphrase, sizeof(ap_passphrase), PSTR("%08u"), (ESP.getChipId() ^ ESP.getFlashChipId()) % 100000000U);
+    snprintf_P(ap_ssid, sizeof(ap_ssid), PSTR("CL-%08u"), ESP.getChipId());
+    snprintf_P(ap_passphrase, sizeof(ap_passphrase), PSTR("%08u"), (ESP.getChipId() ^ ESP.getFlashChipId()) % 100000000U);
 
+    captive_config.begin(ap_ssid, ap_passphrase, force_config_mode);
+
+    if (force_config_mode) {
         char ap_ssid_scroller[16];
         snprintf_P(ap_ssid_scroller, sizeof(ap_ssid_scroller), PSTR("- %s -"), ap_ssid);
         auto ap_ssid_scroller_app = std::make_shared<ScrollerApp>(ap_ssid_scroller, 500);
@@ -77,8 +79,6 @@ void setup() {
         app_controller.addApp(clock_app);
         app_controller.addApp(std::make_shared<BrightnessApp>());
     }
-
-    captive_config.begin(ap_ssid, ap_passphrase, force_config_mode);
 }
 
 void loop() {
