@@ -1,7 +1,7 @@
 #ifndef _SCROLLER_APP_H
 #define _SCROLLER_APP_H
 
-#include <WString.h>
+#include <string>
 
 #include <App.h>
 
