@@ -6,17 +6,16 @@
 #include <EEPROM.h>
 
 #define CAPTIVE_CONFIG_SSID_MAX_LENGTH         32
-#define CAPTIVE_CONFIG_PASSPHRASE_MAX_LENGTH     63
+#define CAPTIVE_CONFIG_PASSPHRASE_MAX_LENGTH   63
 #define CAPTIVE_CONFIG_SNTP_SERVER_MAX_LENGTH  63
 #define CAPTIVE_CONFIG_TZ_MAX_LENGTH           63
 
 struct CaptiveConfigData {
-    uint32_t magic;
     char ssid[CAPTIVE_CONFIG_SSID_MAX_LENGTH + 1];
     char passphrase[CAPTIVE_CONFIG_PASSPHRASE_MAX_LENGTH + 1];
     char sntp_server[3][CAPTIVE_CONFIG_SNTP_SERVER_MAX_LENGTH + 1];
     char tz[CAPTIVE_CONFIG_TZ_MAX_LENGTH + 1];
-} __attribute__((packed));
+};
 
 class CaptiveConfig {
 public:
@@ -48,7 +47,6 @@ public:
      * Handles a POST request to the config page, i.e. a form submit.
      */
     void handlePostConfigPage();
-
 
     const CaptiveConfigData &getData();
 
