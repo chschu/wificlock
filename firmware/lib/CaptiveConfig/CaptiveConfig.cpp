@@ -2,7 +2,7 @@
 
 #include "CaptiveConfig.h"
 
-#define CAPTIVE_CONFIG_MAGIC 0xc01db00b
+#define CAPTIVE_CONFIG_MAGIC 0x51d3b00b
 
 #define CAPTIVE_CONFIG_SSID_PARAM_NAME "ssid"
 #define CAPTIVE_CONFIG_PASSPHRASE_PARAM_NAME "passphrase"
@@ -13,17 +13,68 @@
 
 const char CAPTIVE_CONFIG_PAGE_URI[] PROGMEM = "/_captive/config";
 
+struct CaptiveConfigPersistentDataHeader {
+    uint32_t magic = 0;
+    uint16_t version = 0;
+} __attribute__((packed));
+
+struct CaptiveConfigDataPersistentV1 {
+    static const uint16_t VERSION = 1;
+
+    CaptiveConfigPersistentDataHeader header;
+    char ssid[CAPTIVE_CONFIG_SSID_MAX_LENGTH + 1];
+    char passphrase[CAPTIVE_CONFIG_PASSPHRASE_MAX_LENGTH + 1];
+    char sntp_server[3][CAPTIVE_CONFIG_SNTP_SERVER_MAX_LENGTH + 1];
+    char tz[CAPTIVE_CONFIG_TZ_MAX_LENGTH + 1];
+} __attribute__((packed));
+
+using CaptiveConfigDataPersistentLatest = CaptiveConfigDataPersistentV1;
+
+CaptiveConfigData createTransientFromPersistent(const CaptiveConfigDataPersistentLatest &persistent) {
+    CaptiveConfigData transient;
+    strncpy(transient.ssid, persistent.ssid, sizeof(transient.ssid));
+    strncpy(transient.passphrase, persistent.passphrase, sizeof(transient.passphrase));
+    strncpy(transient.sntp_server[0], persistent.sntp_server[0], sizeof(transient.sntp_server[0]));
+    strncpy(transient.sntp_server[1], persistent.sntp_server[1], sizeof(transient.sntp_server[1]));
+    strncpy(transient.sntp_server[2], persistent.sntp_server[2], sizeof(transient.sntp_server[2]));
+    strncpy(transient.tz, persistent.tz, sizeof(transient.tz));
+    return transient;
+}
+
+CaptiveConfigDataPersistentLatest createPersistentFromTransient(const CaptiveConfigData &transient) {
+    CaptiveConfigDataPersistentLatest persistent;
+    persistent.header.magic = CAPTIVE_CONFIG_MAGIC;
+    persistent.header.version = CaptiveConfigDataPersistentLatest::VERSION;
+    strncpy(persistent.ssid, transient.ssid, sizeof(persistent.ssid));
+    strncpy(persistent.passphrase, transient.passphrase, sizeof(persistent.passphrase));
+    strncpy(persistent.sntp_server[0], transient.sntp_server[0], sizeof(persistent.sntp_server[0]));
+    strncpy(persistent.sntp_server[1], transient.sntp_server[1], sizeof(persistent.sntp_server[1]));
+    strncpy(persistent.sntp_server[2], transient.sntp_server[2], sizeof(persistent.sntp_server[2]));
+    strncpy(persistent.tz, transient.tz, sizeof(persistent.tz));
+    return persistent;
+}
+
 CaptiveConfig::CaptiveConfig(DNSServer &dns_server, ESP8266WebServer &web_server)
     : _dns_server(dns_server), _web_server(web_server) {
 }
 
 void CaptiveConfig::begin(const char *ap_ssid, const char *ap_passphrase, bool force_config_mode) {
-    EEPROM.begin(sizeof(this->_data));
-    EEPROM.get(0, this->_data);
+    CaptiveConfigPersistentDataHeader header;
+    EEPROM.begin(sizeof(header));
+    EEPROM.get(0, header);
+    EEPROM.end();
 
-    // initialize config if magic number is not found in EEPROM
-    if (this->_data.magic != CAPTIVE_CONFIG_MAGIC) {
-        this->_data.magic = CAPTIVE_CONFIG_MAGIC;
+    if (header.magic == CAPTIVE_CONFIG_MAGIC) {
+        // convert and migrate from persistent EEPROM layout
+        CaptiveConfigDataPersistentV1 v1;
+        if (header.version == CaptiveConfigDataPersistentV1::VERSION) {
+            EEPROM.begin(sizeof(v1));
+            EEPROM.get(0, v1);
+            EEPROM.end();
+        }
+        this->_data = createTransientFromPersistent(v1);
+    } else {
+        // initialize config if magic number is not found in EEPROM
         this->_data.ssid[0] = 0;
         this->_data.passphrase[0] = 0;
         strncpy(this->_data.sntp_server[0], "0.de.pool.ntp.org", sizeof(this->_data.sntp_server[0]));
@@ -143,8 +194,11 @@ void CaptiveConfig::handlePostConfigPage() {
     strncpy(this->_data.sntp_server[2], sntp_server_2.c_str(), sizeof(this->_data.sntp_server[2]));
     strncpy(this->_data.tz, tz.c_str(), sizeof(this->_data.tz));
 
-    EEPROM.put(0, this->_data);
-    EEPROM.commit();
+    // convert configuration to persistent EEPROM layout
+    CaptiveConfigDataPersistentLatest persistent = createPersistentFromTransient(this->_data);
+    EEPROM.begin(sizeof(persistent));
+    EEPROM.put(0, persistent);
+    EEPROM.end();
 
     this->_web_server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     this->_web_server.sendHeader("Pragma", "no-cache");
