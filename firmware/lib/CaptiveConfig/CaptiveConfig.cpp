@@ -6,6 +6,7 @@
 
 #define CAPTIVE_CONFIG_SSID_PARAM_NAME "ssid"
 #define CAPTIVE_CONFIG_PASSPHRASE_PARAM_NAME "passphrase"
+#define CAPTIVE_CONFIG_HOSTNAME_PARAM_NAME "hostname"
 #define CAPTIVE_CONFIG_SNTP_SERVER_0_PARAM_NAME "sntp-server-0"
 #define CAPTIVE_CONFIG_SNTP_SERVER_1_PARAM_NAME "sntp-server-1"
 #define CAPTIVE_CONFIG_SNTP_SERVER_2_PARAM_NAME "sntp-server-2"
@@ -26,14 +27,52 @@ struct CaptiveConfigDataPersistentV1 {
     char passphrase[CAPTIVE_CONFIG_PASSPHRASE_MAX_LENGTH + 1];
     char sntp_server[3][CAPTIVE_CONFIG_SNTP_SERVER_MAX_LENGTH + 1];
     char tz[CAPTIVE_CONFIG_TZ_MAX_LENGTH + 1];
+
+    void init() {
+        header.magic = CAPTIVE_CONFIG_MAGIC;
+        header.version = VERSION;
+        ssid[0] = 0;
+        passphrase[0] = 0;
+        strncpy(sntp_server[0], "0.de.pool.ntp.org", sizeof(sntp_server[0]));
+        strncpy(sntp_server[1], "1.de.pool.ntp.org", sizeof(sntp_server[1]));
+        strncpy(sntp_server[2], "2.de.pool.ntp.org", sizeof(sntp_server[2]));
+        strncpy(tz, "CET-1CEST,M3.5.0,M10.5.0/3", sizeof(tz));
+    }
 } __attribute__((packed));
 
-using CaptiveConfigDataPersistentLatest = CaptiveConfigDataPersistentV1;
+struct CaptiveConfigDataPersistentV2 {
+    static const uint16_t VERSION = 2;
+
+    CaptiveConfigPersistentDataHeader header;
+    char ssid[CAPTIVE_CONFIG_SSID_MAX_LENGTH + 1];
+    char passphrase[CAPTIVE_CONFIG_PASSPHRASE_MAX_LENGTH + 1];
+    char hostname[CAPTIVE_CONFIG_HOSTNAME_MAX_LENGTH + 1];
+    char sntp_server[3][CAPTIVE_CONFIG_SNTP_SERVER_MAX_LENGTH + 1];
+    char tz[CAPTIVE_CONFIG_TZ_MAX_LENGTH + 1];
+
+    void migrateFrom(const CaptiveConfigDataPersistentV1 &v1) {
+        header.magic = CAPTIVE_CONFIG_MAGIC;
+        header.version = VERSION;
+        strncpy(ssid, v1.ssid, sizeof(ssid));
+        strncpy(passphrase, v1.passphrase, sizeof(passphrase));
+        strncpy(sntp_server[0], v1.sntp_server[0], sizeof(sntp_server[0]));
+        strncpy(sntp_server[1], v1.sntp_server[1], sizeof(sntp_server[1]));
+        strncpy(sntp_server[2], v1.sntp_server[2], sizeof(sntp_server[2]));
+        strncpy(tz, v1.tz, sizeof(tz));
+
+        char newHostname[17];
+        snprintf_P(newHostname, sizeof(newHostname), PSTR("wificlock-%06x"), ESP.getChipId() & 0xFFFFFF);
+        strncpy(hostname, newHostname, sizeof(hostname));
+    }
+} __attribute__((packed));
+
+using CaptiveConfigDataPersistentLatest = CaptiveConfigDataPersistentV2;
 
 CaptiveConfigData createTransientFromPersistent(const CaptiveConfigDataPersistentLatest &persistent) {
     CaptiveConfigData transient;
     strncpy(transient.ssid, persistent.ssid, sizeof(transient.ssid));
     strncpy(transient.passphrase, persistent.passphrase, sizeof(transient.passphrase));
+    strncpy(transient.hostname, persistent.hostname, sizeof(transient.hostname));
     strncpy(transient.sntp_server[0], persistent.sntp_server[0], sizeof(transient.sntp_server[0]));
     strncpy(transient.sntp_server[1], persistent.sntp_server[1], sizeof(transient.sntp_server[1]));
     strncpy(transient.sntp_server[2], persistent.sntp_server[2], sizeof(transient.sntp_server[2]));
@@ -47,6 +86,7 @@ CaptiveConfigDataPersistentLatest createPersistentFromTransient(const CaptiveCon
     persistent.header.version = CaptiveConfigDataPersistentLatest::VERSION;
     strncpy(persistent.ssid, transient.ssid, sizeof(persistent.ssid));
     strncpy(persistent.passphrase, transient.passphrase, sizeof(persistent.passphrase));
+    strncpy(persistent.hostname, transient.hostname, sizeof(persistent.hostname));
     strncpy(persistent.sntp_server[0], transient.sntp_server[0], sizeof(persistent.sntp_server[0]));
     strncpy(persistent.sntp_server[1], transient.sntp_server[1], sizeof(persistent.sntp_server[1]));
     strncpy(persistent.sntp_server[2], transient.sntp_server[2], sizeof(persistent.sntp_server[2]));
@@ -64,24 +104,42 @@ void CaptiveConfig::begin(const char *ap_ssid, const char *ap_passphrase, bool f
     EEPROM.get(0, header);
     EEPROM.end();
 
-    if (header.magic == CAPTIVE_CONFIG_MAGIC) {
-        // convert and migrate from persistent EEPROM layout
-        CaptiveConfigDataPersistentV1 v1;
-        if (header.version == CaptiveConfigDataPersistentV1::VERSION) {
-            EEPROM.begin(sizeof(v1));
-            EEPROM.get(0, v1);
-            EEPROM.end();
-        }
-        this->_data = createTransientFromPersistent(v1);
-    } else {
+    uint16_t cur_version = 0;
+
+    // initialize or read version 1
+    CaptiveConfigDataPersistentV1 v1;
+    if (header.magic != CAPTIVE_CONFIG_MAGIC) {
         // initialize config if magic number is not found in EEPROM
-        this->_data.ssid[0] = 0;
-        this->_data.passphrase[0] = 0;
-        strncpy(this->_data.sntp_server[0], "0.de.pool.ntp.org", sizeof(this->_data.sntp_server[0]));
-        strncpy(this->_data.sntp_server[1], "1.de.pool.ntp.org", sizeof(this->_data.sntp_server[1]));
-        strncpy(this->_data.sntp_server[2], "2.de.pool.ntp.org", sizeof(this->_data.sntp_server[2]));
-        strncpy(this->_data.tz, "CET-1CEST,M3.5.0,M10.5.0/3", sizeof(this->_data.tz));
+        v1.init();
+        cur_version = CaptiveConfigDataPersistentV1::VERSION;
+    } else if (header.version == CaptiveConfigDataPersistentV1::VERSION) {
+        EEPROM.begin(sizeof(v1));
+        EEPROM.get(0, v1);
+        EEPROM.end();
+        cur_version = CaptiveConfigDataPersistentV1::VERSION;
     }
+
+    // migrate or read version 2
+    CaptiveConfigDataPersistentV2 v2;
+    if (cur_version == 1) {
+        v2.migrateFrom(v1);
+        cur_version = CaptiveConfigDataPersistentV2::VERSION;
+    } else if (header.version == CaptiveConfigDataPersistentV2::VERSION) {
+        EEPROM.begin(sizeof(v2));
+        EEPROM.get(0, v2);
+        EEPROM.end();
+        cur_version = CaptiveConfigDataPersistentV2::VERSION;
+    }
+
+    // reset default config if version is not latest after migration
+    if (cur_version != CaptiveConfigDataPersistentLatest::VERSION) {
+        v1.init();
+        v2.migrateFrom(v1);
+    }
+    CaptiveConfigDataPersistentLatest latest = v2;
+
+    // convert to transient representation
+    this->_data = createTransientFromPersistent(latest);
 
     // WiFi config is stored in EEPROM, don't store it in Flash
     WiFi.persistent(false);
@@ -122,7 +180,9 @@ void CaptiveConfig::begin(const char *ap_ssid, const char *ap_passphrase, bool f
         // start web server for captive portal
         this->_web_server.begin();
     } else {
-        // enable STA with configured network
+        // enable STA with configured network and hostname (must be done in this order)
+        WiFi.enableSTA(true);
+        WiFi.hostname(this->_data.hostname);
         WiFi.begin(this->_data.ssid, this->_data.passphrase);
     }
 }
@@ -158,6 +218,7 @@ void CaptiveConfig::handleGetConfigPage() {
         this->_sendFieldset("WiFi", [this]() {
             this->_sendTextInput("SSID", CAPTIVE_CONFIG_SSID_PARAM_NAME, CAPTIVE_CONFIG_SSID_MAX_LENGTH, this->_data.ssid);
             this->_sendPasswordInput("Passphrase (empty to keep)", CAPTIVE_CONFIG_PASSPHRASE_PARAM_NAME, CAPTIVE_CONFIG_PASSPHRASE_MAX_LENGTH, "");
+            this->_sendTextInput("Hostname", CAPTIVE_CONFIG_HOSTNAME_PARAM_NAME, CAPTIVE_CONFIG_HOSTNAME_MAX_LENGTH, this->_data.hostname);
         });
         this->_sendFieldset("Time", [this]() {
             this->_sendTextInput("SNTP Server (primary)", CAPTIVE_CONFIG_SNTP_SERVER_0_PARAM_NAME, CAPTIVE_CONFIG_SNTP_SERVER_MAX_LENGTH, this->_data.sntp_server[0]);
@@ -178,6 +239,7 @@ void CaptiveConfig::handlePostConfigPage() {
 
     const String &ssid = this->_web_server.arg(CAPTIVE_CONFIG_SSID_PARAM_NAME);
     const String &passphrase = this->_web_server.arg(CAPTIVE_CONFIG_PASSPHRASE_PARAM_NAME);
+    const String &hostname = this->_web_server.arg(CAPTIVE_CONFIG_HOSTNAME_PARAM_NAME);
     const String &sntp_server_0 = this->_web_server.arg(CAPTIVE_CONFIG_SNTP_SERVER_0_PARAM_NAME);
     const String &sntp_server_1 = this->_web_server.arg(CAPTIVE_CONFIG_SNTP_SERVER_1_PARAM_NAME);
     const String &sntp_server_2 = this->_web_server.arg(CAPTIVE_CONFIG_SNTP_SERVER_2_PARAM_NAME);
@@ -189,6 +251,7 @@ void CaptiveConfig::handlePostConfigPage() {
     if (!passphrase.isEmpty()) {
         strncpy(this->_data.passphrase, passphrase.c_str(), sizeof(this->_data.passphrase));
     }
+    strncpy(this->_data.hostname, hostname.c_str(), sizeof(this->_data.hostname));
     strncpy(this->_data.sntp_server[0], sntp_server_0.c_str(), sizeof(this->_data.sntp_server[0]));
     strncpy(this->_data.sntp_server[0], sntp_server_1.c_str(), sizeof(this->_data.sntp_server[1]));
     strncpy(this->_data.sntp_server[2], sntp_server_2.c_str(), sizeof(this->_data.sntp_server[2]));
