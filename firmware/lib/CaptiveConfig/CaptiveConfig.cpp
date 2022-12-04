@@ -121,7 +121,7 @@ void CaptiveConfig::begin(const char *ap_ssid, const char *ap_passphrase, bool f
 
     // migrate or read version 2
     CaptiveConfigDataPersistentV2 v2;
-    if (cur_version == 1) {
+    if (cur_version == CaptiveConfigDataPersistentV1::VERSION) {
         v2.migrateFrom(v1);
         cur_version = CaptiveConfigDataPersistentV2::VERSION;
     } else if (header.version == CaptiveConfigDataPersistentV2::VERSION) {
@@ -304,6 +304,10 @@ void CaptiveConfig::doLoop() {
         this->_dns_server.processNextRequest();
         this->_web_server.handleClient();
     }
+}
+
+bool CaptiveConfig::isConfigMode() {
+    return this->_config_mode;
 }
 
 void CaptiveConfig::_sendConfigPageHtml(const std::function<void()> &inner) {

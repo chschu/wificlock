@@ -1,6 +1,6 @@
 #include <BrightnessApp.h>
 
-BrightnessApp::BrightnessApp() :  _brightness(1), _changed(true) {
+BrightnessApp::BrightnessApp() :  _brightness(4), _changed(true) {
 }
 
 void BrightnessApp::init(AppDisplayInterface &display) {

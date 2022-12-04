@@ -43,7 +43,7 @@ void setup() {
 
     captive_config.begin(ap_ssid, ap_passphrase, force_config_mode);
 
-    if (force_config_mode) {
+    if (captive_config.isConfigMode()) {
         char ap_ssid_scroller[16];
         snprintf_P(ap_ssid_scroller, sizeof(ap_ssid_scroller), PSTR("- %s -"), ap_ssid);
         auto ap_ssid_scroller_app = std::make_shared<ScrollerApp>(ap_ssid_scroller, 500);

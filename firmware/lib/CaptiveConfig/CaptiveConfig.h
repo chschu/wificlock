@@ -27,6 +27,11 @@ public:
     void doLoop();
 
     /**
+     * Returns true iff the config mode is currently active.
+     */
+    bool isConfigMode();
+
+    /**
      * Checks if the current web request is a captive portal request, i.e. targeted at another host.
      * If it is, responds with a redirect, and returns true. Otherwise, returns false.
      * 
